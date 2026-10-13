@@ -1,7 +1,0 @@
-{
-  "name": "OkayRPC",
-  "description": "Set a custom rich presence from your phone",
-  "authors": [{ "name": "MAJEstuck" }],
-  "main": "src/index.tsx",
-  "vendetta": { "icon": "ic_activity_24px" }
-}
