@@ -1,0 +1,7 @@
+{
+  "name": "OkayDelLogs",
+  "description": "Saves a copy of messages and lists the deleted ones (text, images, GIFs) in the plugin settings",
+  "authors": [{ "name": "MAJEstuck" }],
+  "main": "src/index.tsx",
+  "vendetta": { "icon": "ic_message_delete" }
+}
