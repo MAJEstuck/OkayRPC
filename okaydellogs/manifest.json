@@ -1,0 +1,1 @@
+{"name":"OkayDelLogs","description":"Saves a copy of messages and lists the deleted ones (text, images, GIFs) in the plugin settings","authors":[{"name":"MAJEstuck"}],"main":"index.js","vendetta":{"icon":"ic_message_delete"},"hash":"cdc738489b4f46d59c206af25f6153c69ba3946009e368dcacf0faa5428a1bde"}
