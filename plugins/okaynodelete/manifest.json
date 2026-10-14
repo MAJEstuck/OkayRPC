@@ -1,0 +1,7 @@
+{
+  "name": "OkayNoDelete",
+  "description": "Keeps deleted messages (text, images, GIFs) on screen until Discord refreshes the channel",
+  "authors": [{ "name": "MAJEstuck" }],
+  "main": "src/index.tsx",
+  "vendetta": { "icon": "ic_message_delete" }
+}
