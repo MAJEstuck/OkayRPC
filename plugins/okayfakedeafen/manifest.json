@@ -1,0 +1,7 @@
+{
+  "name": "OkayFakeDeafen",
+  "description": "Show yourself as deafened or muted in voice chats while you can still hear",
+  "authors": [{ "name": "MAJEstuck" }],
+  "main": "src/index.tsx",
+  "vendetta": { "icon": "ic_headset_24px" }
+}
