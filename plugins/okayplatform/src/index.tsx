@@ -1,16 +1,22 @@
-import { storage } from "@vendetta/plugin";
+import { React, ReactNative as RN } from "@vendetta/metro/common";
 import { findByProps } from "@vendetta/metro";
-import Settings from "./Settings";
+import { storage } from "@vendetta/plugin";
+import { useProxy } from "@vendetta/storage";
+import { getAssetIDByName } from "@vendetta/ui/assets";
+
+/* ------------------------------------------------------------------ */
+/* Gateway socket patching                                            */
+/* ------------------------------------------------------------------ */
 
 const socketModule = findByProps("getSocket", "isConnected");
 
-// NOTE: `os` is the field Discord's backend keys session type off.
-// `browser` alone is cosmetic (badge icon). Both patched now.
+// `os` is the field Discord's backend keys session type off.
+// `browser` alone is cosmetic (badge icon). Both are patched here.
 const SPOOF_PROPERTIES: Record<string, Record<string, string>> = {
-    desktop: { browser: "Discord Client",   os: "Windows",        device: "" },
-    web:     { browser: "Chrome",           os: "Windows",        device: "" },
-    meta:    { browser: "Discord VR",       os: "Android",        device: "Quest" },
-    console: { browser: "Discord Embedded", os: "PlayStation 5",  device: "" },
+    desktop: { browser: "Discord Client",   os: "Windows",       device: "" },
+    web:     { browser: "Chrome",           os: "Windows",       device: "" },
+    meta:    { browser: "Discord VR",       os: "Android",       device: "Quest" },
+    console: { browser: "Discord Embedded", os: "PlayStation 5", device: "" },
 };
 
 const IDENTIFY = 2;
@@ -28,13 +34,11 @@ function getPlatform() {
 function applySpoof(data: any) {
     const currentPlatform = getPlatform();
     if (currentPlatform === "off" || !SPOOF_PROPERTIES[currentPlatform]) return;
-
     if (data && data.properties) {
         Object.assign(data.properties, SPOOF_PROPERTIES[currentPlatform]);
     }
 }
 
-// Low-level patch for the raw WebSocket frame send
 function patchTransport(socket: any) {
     const ws = socket?.webSocket;
     if (!ws || typeof ws.send !== "function" || patchedTransports.has(ws)) return;
@@ -51,9 +55,7 @@ function patchTransport(socket: any) {
                     data = JSON.stringify(parsed);
                 }
             }
-        } catch (e) {
-            // Ignore non-JSON payload parsing errors
-        }
+        } catch {}
         return origWsSend(data);
     };
 }
@@ -66,25 +68,20 @@ function unpatchTransport(socket: any) {
     }
 }
 
-// Main patch for the higher-level Discord Gateway Socket instance
 function patchSocket(socket: any) {
     if (!socket) return;
-
     patchTransport(socket);
     if (socket.__psPatched) return;
 
     origSend = socket.send.bind(socket);
     socket.send = function (op: number, data: any, flag: any) {
-        if (op === IDENTIFY && data) {
-            applySpoof(data);
-        }
+        if (op === IDENTIFY && data) applySpoof(data);
         return origSend.call(this, op, data, flag);
     };
 
     socket.__psPatched = true;
     patchedSocket = socket;
 
-    // Discord periodically handles re-identifies; re-ensure transport patch here
     if (typeof socket.handleIdentify === "function") {
         origHandleIdentify = socket.handleIdentify.bind(socket);
         socket.handleIdentify = function (...args: any[]) {
@@ -95,7 +92,6 @@ function patchSocket(socket: any) {
     }
 }
 
-// Watcher loop that catches cold-boot delays & mid-session socket swaps
 function startSocketWatcher() {
     let lastSocket: any = null;
     let attempts = 0;
@@ -103,23 +99,15 @@ function startSocketWatcher() {
     const id = setInterval(() => {
         attempts++;
         const liveSocket = socketModule?.getSocket();
-
         if (liveSocket) {
             if (liveSocket !== lastSocket || !liveSocket.__psPatched) {
                 lastSocket = liveSocket;
                 patchSocket(liveSocket);
-
-                // Force reconnect if plugin just loaded mid-boot and platform spoofing is enabled
-                if (getPlatform() !== "off" && attempts <= 5) {
-                    reconnectGateway();
-                }
+                if (getPlatform() !== "off" && attempts <= 5) reconnectGateway();
             } else {
-                // Ensure the underlying WebSocket transport stays patched across disconnects
                 patchTransport(liveSocket);
             }
         }
-
-        // Keep running periodically to survive background reconnects
     }, 250);
 
     activeIntervals.push(id);
@@ -128,15 +116,10 @@ function startSocketWatcher() {
 export function reconnectGateway() {
     const socket = socketModule?.getSocket();
     if (!socket) return;
-
     socket.sessionId = null;
     socket.seq = 0;
-
-    if (socket.webSocket) {
-        socket.webSocket.close();
-    } else if (typeof socket.close === "function") {
-        socket.close();
-    }
+    if (socket.webSocket) socket.webSocket.close();
+    else if (typeof socket.close === "function") socket.close();
 }
 
 function teardown() {
@@ -155,19 +138,81 @@ function teardown() {
     origHandleIdentify = null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Settings UI                                                        */
+/* ------------------------------------------------------------------ */
+
+const { ScrollView } = findByProps("ScrollView");
+const { TableRadioGroup, TableRadioRow, Stack } = findByProps(
+    "TableRadioGroup",
+    "TableRadioRow",
+    "Stack"
+);
+
+function renderIcon(name: string, tintColor?: string) {
+    const assetId = getAssetIDByName(name);
+    if (!assetId) return null;
+    return (
+        <RN.Image
+            source={assetId}
+            style={{ width: 24, height: 24, ...(tintColor ? { tintColor } : {}) }}
+        />
+    );
+}
+
+const PLATFORMS = [
+    { label: "Off",         value: "off",     subLabel: "Default mobile status",                          icon: () => renderIcon("MobilePhoneIcon") },
+    { label: "Desktop",     value: "desktop", subLabel: "Spoofs os=Windows in IDENTIFY (quest-relevant)",  icon: () => renderIcon("ic_monitor", "#ffffff") },
+    { label: "Web / Browser", value: "web",   subLabel: "Spoofs os=Windows + Chrome badge",                icon: () => renderIcon("GlobeEarthIcon") },
+    { label: "VR",          value: "meta",    subLabel: "Shows VR Icon (os=Android, device=Quest)",        icon: () => renderIcon("ic_vr_headset_24px") },
+    { label: "PlayStation", value: "console", subLabel: "Shows PlayStation Icon",                          icon: () => renderIcon("ic_playstation_device_ps5_32px") },
+];
+
+function SettingsScreen() {
+    useProxy(storage);
+    const selected = storage.platform || "off";
+
+    const handleSelect = (value: string) => {
+        storage.platform = value;
+        reconnectGateway();
+    };
+
+    return (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }}>
+            <Stack spacing={16}>
+                <TableRadioGroup
+                    title="select a platform to spoof"
+                    value={selected}
+                    onChange={(val: string) => handleSelect(val)}
+                >
+                    {PLATFORMS.map((opt) => (
+                        <TableRadioRow
+                            key={opt.value}
+                            label={opt.label}
+                            subLabel={opt.subLabel}
+                            value={opt.value}
+                            selected={selected === opt.value}
+                            icon={opt.icon ? opt.icon() : undefined}
+                            onPress={() => handleSelect(opt.value)}
+                        />
+                    ))}
+                </TableRadioGroup>
+            </Stack>
+        </ScrollView>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/* Lifecycle                                                          */
+/* ------------------------------------------------------------------ */
+
 export default {
     onLoad: () => {
-        if (!storage.platform) {
-            storage.platform = "off";
-        }
-
-        // Immediately start continuous polling to attach as early as possible
+        if (!storage.platform) storage.platform = "off";
         startSocketWatcher();
     },
-
     onUnload: () => {
         teardown();
     },
-
-    settings: Settings,
+    settings: SettingsScreen,
 };
