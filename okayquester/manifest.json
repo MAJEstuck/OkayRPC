@@ -1,0 +1,1 @@
+{"name":"QuestSpoofer","description":"Silently advances WATCH_VIDEO quests. Tries PLAY_ACTIVITY and PLAY_ON_DESKTOP where supported. Never auto-claims.","authors":[{"name":"you"}],"main":"index.js","vendetta":{"icon":"ic_cog_24px"},"hash":"8eb89d4c42b59bda3e3f9bb3ce98cbc316d272e6ac9df45ea2b794af03b7ce1d"}
