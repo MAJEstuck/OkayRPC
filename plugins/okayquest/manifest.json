@@ -1,8 +1,7 @@
 {
-  "name": "QuestSpoofer",
-  "description": "Silently advances WATCH_VIDEO quests in the background. Attempts PLAY_ACTIVITY and PLAY_ON_DESKTOP where possible. Never auto-claims.",
+  "name": "QuestPresence",
+  "description": "Emits gateway OP 3 presence with a quest's application_id to satisfy PLAY_ON_DESKTOP quests. Pair with Platform Spoofer set to Desktop.",
   "authors": [{ "name": "you" }],
   "main": "src/index.tsx",
-  "vendetta": { "icon": "ic_cog_24px" },
-  "hash": "auto-generated-on-build"
+  "vendetta": { "icon": "ic_activity_24px" }
 }
