@@ -1,0 +1,1 @@
+{"name":"OkayNowPlaying","description":"Shows the song you're playing (via Last.fm) as a Listening status on your Discord profile","authors":[{"name":"MAJEstuck"}],"main":"index.js","vendetta":{"icon":"ic_headset_24px"},"hash":"d849436b225e81bf6a392a0a83029f90a446bc15eb895494480c394ea572e592"}
