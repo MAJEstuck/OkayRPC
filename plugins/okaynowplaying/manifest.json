@@ -1,0 +1,7 @@
+{
+  "name": "OkayNowPlaying",
+  "description": "Shows the song you're playing (via Last.fm) as a Listening status on your Discord profile",
+  "authors": [{ "name": "MAJEstuck" }],
+  "main": "src/index.tsx",
+  "vendetta": { "icon": "ic_headset_24px" }
+}
