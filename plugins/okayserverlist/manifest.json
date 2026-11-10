@@ -1,0 +1,7 @@
+{
+  "name": "OkayServerList",
+  "description": "Search, select, and leave multiple servers",
+  "authors": [{ "name": "MAJEstuck" }],
+  "main": "src/index.tsx",
+  "vendetta": { "icon": "ic_server_24px" }
+}
